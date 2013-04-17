@@ -154,98 +154,6 @@ def reconfigure():
     
     runThreads(fpgalist, threadqueue)
 
-    def snap(fpga, snap_id, bytes=4096, fmt='uint32'):
-        """Retrieve & unpack data from a snap block"""
-    
-        fpga.write_int(snap_id+'_ctrl', 0, blindwrite=True)
-        fpga.write_int(snap_id+'_ctrl', 1, blindwrite=True)
-        packed = fpga.read(snap_id+'_bram', bytes)
-    
-        data = np.fromstring(packed, dtype=fmt).byteswap()
-    
-        return data
-
-    def stitch(array1,array2):
-        """ Stitch together even and odd values.
-        Example
-        -------
-        a1=[0 2 4], a2 =[1 3 5]
-        stitch(a1,a2) = [0 1 2 3 4 5]
-        """
-        # Create a 2xN numpy array, transpose then ravel into 1D
-        data = np.array([array1,array2])
-    
-        return np.array(data.transpose().ravel())
-
-    def squashData(data, numchans=256):
-        """ Averages channels, reduces down to an amount suitable for plotting.  """   
-        if(len(data) > numchans):
-            yvals = np.sum(data.reshape([numchans, len(data)/numchans]), axis=1)/len(data)*numchans
-        else:
-            yvals = data
-        return yvals.astype('float32')
-
-    def squashSpectrum(spectra):
-        """ Applies squashData four times"""
-    
-        squashed = {"xx"    : 10*np.log10(squashData(spectra["xx"])), 
-                    "yy"    : 10*np.log10(squashData(spectra["yy"])), 
-                    "re_xy" : 10*np.log10(squashData(spectra["re_xy"])), 
-                    "im_xy" : 10*np.log10(squashData(spectra["im_xy"])) }
-    
-        return squashed
-
-    def getSpectrum(fpga):
-        """Retrieves HIPSR spectral data from roach board.
-    
-        Returns spectral data as a dictionary of numpy arrays
-    
-        Parameters
-        ----------
-        fpga: katcp_wrapper.FpgaClient object
-          fpga katcp socket thing that does the talking
-        """
-        global timestamp
-        bytes=4096*4
-
-        if(fpga.is_connected()):
-            # grab the snap data and unpack
-            data_xx0 = snap(fpga, 'snap_xx0', bytes, 'uint32')
-            data_xx1 = snap(fpga, 'snap_xx1', bytes, 'uint32')
-            data_yy0 = snap(fpga, 'snap_yy0', bytes, 'uint32')
-            data_yy1 = snap(fpga, 'snap_yy1', bytes, 'uint32')
-        
-            data_re_xy0 = snap(fpga, 'snap_re_xy0', bytes, 'int32')
-            data_re_xy1 = snap(fpga, 'snap_re_xy1', bytes, 'int32')
-            data_im_xy0 = snap(fpga, 'snap_im_xy0', bytes, 'int32')
-            data_im_xy1 = snap(fpga, 'snap_im_xy1', bytes, 'int32')
-
-            #Sew these back together
-            data_xx = stitch(data_xx0, data_xx1)
-            data_yy = stitch(data_yy0, data_yy1)
-            data_re_xy = stitch(data_re_xy0, data_re_xy1)
-            data_im_xy = stitch(data_im_xy0, data_im_xy1)
-        
-            fft_of  = fpga.read_int('o_fft_of')
-            acc_cnt = fpga.read_int('o_acc_cnt') 
-            adc_clip = fpga.read_int('o_adc0_clip')
-
-            #reverse data: np.array(data_xx)[::-1]
-            dataDict = {
-                "id" : acc_cnt, 
-                "xx": data_xx, 
-                "yy" : data_yy, 
-                "re_xy" : data_re_xy, 
-                "im_xy" : data_im_xy, 
-                "fft_of" : fft_of,
-                "adc_clip" : adc_clip,
-                "timestamp" : 0
-                }
-        
-            return dataDict
-        else:
-            raise Exception('FPGA-data-grabber')
-
 def snap(fpga, snap_id, bytes=4096, fmt='uint32'):
     """Retrieve & unpack data from a snap block"""
     
@@ -321,6 +229,12 @@ def getSpectrum(fpga):
         fft_of  = fpga.read_int('o_fft_of')
         acc_cnt = fpga.read_int('o_acc_cnt') 
         adc_clip = fpga.read_int('o_adc0_clip')
+        
+        # grab the NAR snap data too
+        x_on  = snap(fpga, 'nar_snap_x_on',  64, 'uint32')
+        x_off = snap(fpga, 'nar_snap_x_off', 64, 'uint32')
+        y_on  = snap(fpga, 'nar_snap_y_on',  64, 'uint32')
+        y_off = snap(fpga, 'nar_snap_y_off', 64, 'uint32')
 
         #reverse data: np.array(data_xx)[::-1]
         dataDict = {
@@ -331,7 +245,11 @@ def getSpectrum(fpga):
             "im_xy" : data_im_xy, 
             "fft_of" : fft_of,
             "adc_clip" : adc_clip,
-            "timestamp" : 0
+            "timestamp" : 0,
+            "x_on"  : x_on,
+            "x_off" : x_off,
+            "y_on"  : y_on,
+            "y_off" : y_off
             }
         
         return dataDict
