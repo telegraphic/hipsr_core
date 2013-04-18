@@ -45,7 +45,7 @@ class FirmwareConfig(tb.IsDescription):
   mux_sel	         = tb.Int32Col(pos=4)      # Digital noise source or the ADC?
   fft_shift	         = tb.Int32Col(pos=5)      # FFT shift
   acc_len	         = tb.Int32Col(pos=6)      # Number of accumulations per dump
-  nar_sq_wave_period = tb.Int32Col(pos-7)      # Noise diode square wave period 
+  nar_sq_wave_period = tb.Int32Col(pos=7)      # Noise diode square wave period 
   nar_quant_yy_gain  = tb.Int32Col(pos=8)      # Noise diode gain 
   nar_quant_xx_gain  = tb.Int32Col(pos=9)      # Gain used in quantization - nar XX
   nar_fft_shift      = tb.Int32Col(pos=10)     # Gain used in quantization - nar YY 

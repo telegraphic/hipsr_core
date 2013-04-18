@@ -18,9 +18,8 @@ import sys, os, socket, random, select, re, time
 import threading, Queue
 import numpy as np
 
-import lib.katcp_wrapper as katcp_wrapper
-import lib.helpers as h
-import lib.config as config
+import hipsr_core.katcp_wrapper as katcp_wrapper
+import hipsr_core.config as config
 
 class FpgaProgrammer(threading.Thread):
     """ Thread worker function for reprogramming roach boards """

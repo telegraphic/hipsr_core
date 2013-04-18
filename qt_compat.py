@@ -4,6 +4,8 @@ qt_compat.py
 ============
 
 Compatibility script to fall back to PyQt4 if PySide isn't installed/working.
+
+[1] http://qt-project.org/wiki/Differences_Between_PySide_and_PyQt
 """
 
 from __future__ import with_statement
