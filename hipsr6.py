@@ -49,7 +49,7 @@ class FirmwareConfig(tb.IsDescription):
   nar_quant_yy_gain  = tb.Int32Col(pos=8)      # Noise diode gain 
   nar_quant_xx_gain  = tb.Int32Col(pos=9)      # Gain used in quantization - nar XX
   nar_fft_shift      = tb.Int32Col(pos=10)     # Gain used in quantization - nar YY 
-  nar_nar_acc_len    = tb.Int32Col(pos=11)     # Noise diode accumulation length
+  nar_acc_len        = tb.Int32Col(pos=11)     # Noise diode accumulation length
 
   
 class Observation(tb.IsDescription):
@@ -183,7 +183,6 @@ def createSingleBeam(filename, path='./'):
         'azimuth'  : 'deg',
         'elevation' : 'deg'
     }
-
 
     h5.flush()
     

@@ -25,7 +25,7 @@ tcs_port     = 59011             # BPSR is 50910
 tcs_server   = '130.155.182.73'  # hipsr-srv0 eth0
 
 plotter_port = 59012
-plotter_host = '130.155.181.64'  # Danny's laptop at Parkes
+plotter_host = '127.0.0.1'  # Plotting on localhost
 
 katcp_port = 7147
 

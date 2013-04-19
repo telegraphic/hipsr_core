@@ -91,11 +91,18 @@ class FpgaConfigurer(threading.Thread):
                 fpga.write_int('quant_yy_gain',   config.fpga_config["quant_yy_gain"])
                 fpga.write_int('quant_xy_gain',   config.fpga_config["quant_xy_gain"])
                 fpga.write_int('fft_shift',       config.fpga_config["fft_shift"])
-        
+
+                fpga.write_int("nar_sq_wave_period", config.fpga_config["nar_sq_wave_period"])
+                fpga.write_int("nar_quant_yy_gain",  config.fpga_config["nar_quant_yy_gain"]) 
+                fpga.write_int("nar_quant_xx_gain",  config.fpga_config["nar_quant_xx_gain"]) 
+                fpga.write_int("nar_fft_shift",      config.fpga_config["nar_fft_shift"])     
+                fpga.write_int("nar_acc_len",        config.fpga_config["nar_acc_len"])
+
                 fpga.write_int('master_reset',    0)
                 fpga.write_int('master_reset',    1)
                 fpga.write_int('sync_pps_arm',    0)
                 fpga.write_int('sync_pps_arm',    1)
+                
                 print "\t%s configured"%fpga.host
                 time.sleep(1)
               except:
@@ -182,15 +189,24 @@ def squashData(data, numchans=256):
         yvals = np.sum(data.reshape([numchans, len(data)/numchans]), axis=1)/len(data)*numchans
     else:
         yvals = data
-    return yvals.astype('float32')
+    return yvals.astype('float16')
 
 def squashSpectrum(spectra):
-    """ Applies squashData four times"""
+    """ Applies squashData four times """
+    #squashed = {"xx"    : 10*np.log10(squashData(spectra["xx"])), 
+    #            "yy"    : 10*np.log10(squashData(spectra["yy"])), 
+    #            "re_xy" : squashData(spectra["re_xy"]), 
+    #            "im_xy" : squashData(spectra["im_xy"]) }
     
-    squashed = {"xx"    : 10*np.log10(squashData(spectra["xx"])), 
-                "yy"    : 10*np.log10(squashData(spectra["yy"])), 
-                "re_xy" : 10*np.log10(squashData(spectra["re_xy"])), 
-                "im_xy" : 10*np.log10(squashData(spectra["im_xy"])) }
+    #keys = ["xx","yy","re_xy","im_xy"]
+    keys = ["xx", "yy"] # No need to do stokes for now
+    squashed = {}
+    
+    for key in keys:
+        val = 10*np.log10(squashData(spectra[key]))
+        val[np.isnan(val)] = 0
+        val[np.isinf(val)] = 0
+        squashed[key] = val
     
     return squashed
 
@@ -230,10 +246,10 @@ def getSpectrum(fpga):
         adc_clip = fpga.read_int('o_adc0_clip')
         
         # grab the NAR snap data too
-        x_on  = snap(fpga, 'nar_snap_x_on',  64, 'uint32')
-        x_off = snap(fpga, 'nar_snap_x_off', 64, 'uint32')
-        y_on  = snap(fpga, 'nar_snap_y_on',  64, 'uint32')
-        y_off = snap(fpga, 'nar_snap_y_off', 64, 'uint32')
+        xx_cal_on  = snap(fpga, 'nar_snap_x_on',  64, 'uint32')
+        xx_cal_off = snap(fpga, 'nar_snap_x_off', 64, 'uint32')
+        yy_cal_on  = snap(fpga, 'nar_snap_y_on',  64, 'uint32')
+        yy_cal_off = snap(fpga, 'nar_snap_y_off', 64, 'uint32')
 
         #reverse data: np.array(data_xx)[::-1]
         dataDict = {
@@ -245,10 +261,10 @@ def getSpectrum(fpga):
             "fft_of" : fft_of,
             "adc_clip" : adc_clip,
             "timestamp" : 0,
-            "x_on"  : x_on,
-            "x_off" : x_off,
-            "y_on"  : y_on,
-            "y_off" : y_off
+            "xx_cal_on"  : xx_cal_on,
+            "xx_cal_off" : xx_cal_off,
+            "yy_cal_on"  : yy_cal_on,
+            "yy_cal_off" : yy_cal_off
             }
         
         return dataDict
