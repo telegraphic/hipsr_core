@@ -189,7 +189,7 @@ def squashData(data, numchans=256):
         yvals = np.sum(data.reshape([numchans, len(data)/numchans]), axis=1)/len(data)*numchans
     else:
         yvals = data
-    return yvals.astype('float16')
+    return yvals.astype('float32')
 
 def squashSpectrum(spectra):
     """ Applies squashData four times """
@@ -207,7 +207,6 @@ def squashSpectrum(spectra):
         val[np.isnan(val)] = 0
         val[np.isinf(val)] = 0
         squashed[key] = val
-    
     return squashed
 
 def getSpectrum(fpga):
