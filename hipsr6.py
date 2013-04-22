@@ -121,7 +121,7 @@ class ScanPointing(tb.IsDescription):
     elevation   = tb.Float32Col(pos=28)    # Telescope elevation
     par_angle   = tb.Float32Col(pos=29)    # Paraxial angle
     focus_tan   = tb.Float32Col(pos=30)    # Lateral focus offset (mm) "Z"
-    focus_axial = tb.Float32Col(pos=31)    # Axial docus offset (mm) "Y"
+    focus_axi   = tb.Float32Col(pos=31)    # Axial docus offset (mm) "Y"
     focus_rot   = tb.Float32Col(pos=32)    # Receiver rotation angle
     
 def createSingleBeam(filename, path='./'):
