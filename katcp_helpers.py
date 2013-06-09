@@ -203,9 +203,9 @@ def squashSpectrum(spectra):
     squashed = {}
     
     for key in keys:
-        val = 10*np.log10(squashData(spectra[key]))
-        val[np.isnan(val)] = 0
-        val[np.isinf(val)] = 0
+        val = squashData(spectra[key])
+        val[np.isnan(val)] = 0   # JSON does not support nan
+        val[np.isinf(val)] = 0   # JSON does not support inf
         squashed[key] = val
     return squashed
 
@@ -219,7 +219,6 @@ def getSpectrum(fpga):
     fpga: katcp_wrapper.FpgaClient object
       fpga katcp socket thing that does the talking
     """
-    global timestamp
     bytes=4096*4
 
     if(fpga.is_connected()):
@@ -240,8 +239,8 @@ def getSpectrum(fpga):
         data_re_xy = stitch(data_re_xy0, data_re_xy1)
         data_im_xy = stitch(data_im_xy0, data_im_xy1)
         
-        fft_of  = fpga.read_int('o_fft_of')
-        acc_cnt = fpga.read_int('o_acc_cnt') 
+        fft_of   = fpga.read_int('o_fft_of')
+        acc_cnt  = fpga.read_int('o_acc_cnt') 
         adc_clip = fpga.read_int('o_adc0_clip')
         
         # grab the NAR snap data too

@@ -5,8 +5,10 @@
    @Revised 2009/12/01 to include print 10gbe core details.
    @Revised 2010/01/07 to include bulkread
    @Revised 2010/06/28 to include qdr stuff
+   
    @modified Danny Price <dan@thetelegraphic.com>
    @Revised 2013/03/17 with FPGA locking support
+   @Revised 2013/03/22 with return_arp function
    """
 
 import struct, re, threading, socket, select, traceback, logging, sys, time, os
@@ -390,6 +392,20 @@ class FpgaClient(BlockingClient):
            """
         super(FpgaClient,self).stop()
         self.join(timeout=self._timeout)
+
+    def return_10gbe_arp_table(self,dev_name):
+        """Returns string of 10GbE core ARP table.
+           @param dev_name string: Name of the core.
+        """
+        port_dump=list(struct.unpack('>16384B',self.read(dev_name,16384)))
+        ip_prefix= '%3d.%3d.%3d.'%(port_dump[0x10],port_dump[0x11],port_dump[0x12])
+	arp_str = ''
+        for i in range(256):
+            arp_str += 'IP: %s%3d: MAC: '%(ip_prefix,i)
+            for m in port_dump[0x3000+i*8+2:0x3000+i*8+8]:
+                arp_str += '%02X '%m
+            arp_str += '\n'
+        return arp_str
 
     def print_10gbe_core_details(self,dev_name,arp=False, cpu=False):
         """Prints 10GbE core details. 

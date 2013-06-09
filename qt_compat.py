@@ -37,7 +37,6 @@ def _pyqt4_import_module(moduleName):
 	pyside = __import__('PyQt4', globals(), locals(), [moduleName], -1)
 	return getattr(pyside, moduleName)
 
-
 if USES_PYSIDE:
 	import_module = _pyside_import_module
 
@@ -51,6 +50,11 @@ else:
 	Slot = QtCore.pyqtSlot
 	Property = QtCore.pyqtProperty
 
+def is_pyside():
+    if USES_PYSIDE:
+        return True
+    else:
+        return False
 
 if __name__ == "__main__":
 	pass
