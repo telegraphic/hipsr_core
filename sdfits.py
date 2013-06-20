@@ -528,23 +528,34 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
     h6 = Hipsr6(h5file)
    
     
-    num_acc  = h6.beams[0].shape[0] 
-    num_rows = num_acc * 13
-    
-    if num_acc == 0:
-        print "No data in %s. Skipping."%h5file
-        return -1
-    
     print "Input file: %s"%h6.h5.filename
-    print "No accumulations: %s, no rows: %s"%(num_acc, num_rows)
     print h6
-    abspath = os.path.abspath( __file__ ).rstrip('sdfits.py')
+    abspath = os.path.abspath( __file__ ).rstrip('sdfits.py').rstrip('sdfits.pyc')
     diode_cal_file_x  = "%s/diode_jy_x.cal"%abspath
     diode_cal_file_y  = "%s/diode_jy_y.cal"%abspath
     cal_factor_file   = "%s/cal_factor.cal"%abspath
     
     cf = np.fromfile(cal_factor_file)
     diode_temps_x, diode_temps_y = loadDiodeTemp(h6, diode_cal_file_x, diode_cal_file_y)
+
+    scan_pointing_len = h6.tb_scan_pointing.shape[0]
+    
+    tb_lengths = []
+    for beam in h6.h5.root.raw_data:
+        if beam.shape[0] != scan_pointing_len:
+            beam_id = int(beam.name.lstrip('beam_'))
+            print "WARNING: beam %i len: %i, scan_pointing len: %i"%(beam_id, beam.shape[0], scan_pointing_len)
+        tb_lengths.append(np.min([beam.shape[0], scan_pointing_len]))
+        
+     
+    num_acc  = np.max(tb_lengths) 
+    num_rows = num_acc * 13
+    
+    if num_acc == 0:
+        print "No data in %s. Skipping."%h5file
+        return -1
+    
+    print "No accumulations: %s, no rows: %s"%(num_acc, num_rows)
 
     # We now need to generate a blank SD-FITS file, with the same number of rows
     print "\nGenerating blank SD-FITS file with %i rows..."%num_rows
@@ -609,19 +620,19 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
         flipped = True
     
     print "Filling in unique values... "
-    scan_pointing_len = h6.tb_scan_pointing.shape[0]
-    
+    num_cycles = np.min([scan_pointing_len, num_acc])
     for row_h5 in range(num_acc):
         cycle_id += 1 # Starts at 1 in SD-FITS file
         for beam in h6.h5.root.raw_data:
+            beam_id = int(beam.name.lstrip('beam_'))
             LinePrint("%i of %i"%(row_sd, num_rows))
             
-            if cycle_id <= scan_pointing_len:
+            if cycle_id <= num_cycles:
                 raj_id = "mb%s_raj"%beam.name.lstrip('beam_')
                 dcj_id = "mb%s_dcj"%beam.name.lstrip('beam_')
                 
                 sdtab["CYCLE"][row_sd]   = cycle_id
-                beam_id = int(beam.name.lstrip('beam_'))
+                
                 
                 # Fix beam mapping (remove after fixing mapping)
                 sdtab["BEAM"][row_sd]     = beam_id
@@ -630,7 +641,11 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                 sdtab["CRVAL4"][row_sd]   = h6.tb_scan_pointing.col(dcj_id)[cycle_id-1]
                 sdtab["AZIMUTH"][row_sd]  = h6.tb_scan_pointing.col("azimuth")[cycle_id-1]
                 sdtab["ELEVATIO"][row_sd] = h6.tb_scan_pointing.col("elevation")[cycle_id-1]
-                
+                sdtab["PARANGLE"][row_sd] = h6.tb_scan_pointing.col("par_angle")[cycle_id-1]
+                sdtab["FOCUSAXI"][row_sd] = h6.tb_scan_pointing.col("focus_axi")[cycle_id-1]
+                sdtab["FOCUSTAN"][row_sd] = h6.tb_scan_pointing.col("focus_tan")[cycle_id-1]
+                sdtab["FOCUSROT"][row_sd] = h6.tb_scan_pointing.col("focus_rot")[cycle_id-1]
+                                 
 
                 try:
                     timestamp  = beam.cols.timestamp[row_h5]
@@ -662,8 +677,8 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                         
                         xx = xx / np.average(extractMid(xx)) * T_sys_x
                         yy = yy / np.average(extractMid(yy)) * T_sys_y
-                        re_xy = re_xy / np.average(extractMid(re_xy)) * (T_sys_x + T_sys_y)/2
-                        im_xy = im_xy / np.average(extractMid(im_xy)) * (T_sys_x + T_sys_y)/2
+                        re_xy = re_xy / np.average(extractMid(re_xy)) * np.sqrt(T_sys_x * T_sys_y)
+                        im_xy = im_xy / np.average(extractMid(im_xy)) * np.sqrt(T_sys_x * T_sys_y)
                         
                         # Ettore tells me Parkes uses this definition
                         # i.e. that I is the average of xx + yy
