@@ -644,7 +644,11 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                 sdtab["PARANGLE"][row_sd] = h6.tb_scan_pointing.col("par_angle")[cycle_id-1]
                 sdtab["FOCUSAXI"][row_sd] = h6.tb_scan_pointing.col("focus_axi")[cycle_id-1]
                 sdtab["FOCUSTAN"][row_sd] = h6.tb_scan_pointing.col("focus_tan")[cycle_id-1]
-                sdtab["FOCUSROT"][row_sd] = h6.tb_scan_pointing.col("focus_rot")[cycle_id-1]
+                
+                # This is a wild guess...
+                focus_rot = h6.tb_scan_pointing.col("focus_rot")[cycle_id-1]
+                feed_angle = h6.tb_observation.col("feed_angle")[0]
+                sdtab["FOCUSROT"][row_sd] = focus_rot # + feed_angle
                                  
 
                 try:
@@ -660,8 +664,8 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                 
                     #print T_sys_x, T_sys_y
                     sdtab["TSYS"][row_sd] = (T_sys_x, T_sys_y)
-                    
-                    
+                    sdtab["TCAL"][row_sd] = (np.average(extractMid(T_d_x)), np.average(extractMid(T_d_y)))
+                    #sdtab["CALFCTR"][row_sd] = (1, 1)
                     
                     if write_stokes:
                         # Currently not calibrating!
@@ -674,6 +678,7 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                         xx[0], yy[0],re_xy[0], im_xy[0] = np.zeros(4)
                         if flipped:
                             xx, yy, re_xy, im_xy = xx[::-1], yy[::-1], re_xy[::-1], im_xy[::-1]
+                        
                         
                         xx = xx / np.average(extractMid(xx)) * T_sys_x
                         yy = yy / np.average(extractMid(yy)) * T_sys_y
@@ -696,7 +701,7 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                         
                         xx = beam.cols.xx[row_h5].astype('float32') 
                         yy = beam.cols.yy[row_h5].astype('float32') 
-                        
+                                                
                         # Blank DC bin
                         xx[0], yy[0] = 0,0
                         if flipped:
@@ -708,12 +713,30 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                         
                         xx = xx / np.average(extractMid(xx)) * T_sys_x
                         yy = yy / np.average(extractMid(yy)) * T_sys_y
-
+                        
+                        # Multibeam stats screws up if it encounters division by 1
+                        xx[xx <= 1 ] = 1  
+                        yy[yy <= 1 ] = 1 
+                        
+                        do_flagger = True
+                        if do_flagger:
+                            flags = np.zeros(len(xx))
+                            flags[xx>T_sys_x*2] = 1
+                            flags[yy>T_sys_x*2] = 1
+                            flags[xx==1] = 1
+                            flags[yy==1] = 1
+                        
                         data = np.append(xx, yy)
                         data = data.reshape([1,1,2,8192]) 
                     
                     sdtab["DATA"][row_sd] = data
                     
+                    if do_flagger:
+                        flags = np.append(flags, flags)
+                        flags = flags.reshape([1,1,2,8192])
+                        sdtab["FLAGGED"][row_sd] = flags 
+                    
+
 
                     
                 except:
