@@ -17,23 +17,16 @@ __email__     = "danny.price@astro.ox.ac.uk"
 __license__   = "GNU GPL"
 __version__   = "2.0 - Ballistic Bandicoot"
 
-project_id = 'PXXX'
-
-data_dir    = '/data/hipsr'
-
-tcs_port     = 59011             # BPSR is 50910
-tcs_server   = '130.155.182.73'  # hipsr-srv0 eth0
-
-plotter_port = 59012
-plotter_host = '127.0.0.1'  # Plotting on localhost
-
-katcp_port = 7147
-
-#boffile    = 'hipsr_parkes_400_2012_Mar_15_2209.bof'
-boffile     = 'hispec_8192_v2_2013_Apr_18_1730.bof'
-
-reprogram   = True
-reconfigure = True
+project_id    = 'PXXX'
+data_dir      = '/data/hipsr'
+tcs_port      = 59011             # BPSR is 50910
+tcs_server    = '130.155.182.73'  # hipsr-srv0 eth0
+plotter_port  = 59012
+plotter_host  = '127.0.0.1'  # Plotting on localhot
+katcp_port    = 7147
+tcs_regex_esc = '\\n' # Escape for message from TCS
+reprogram     = True
+reconfigure   = True
 
 ###############
 # Roach to beam mappings
@@ -58,7 +51,12 @@ roachlist = {
 
 
 ############
-# FPGA setup
+# FPGA Flavors
+############
+fpga_config = {}
+
+############
+# hipsr_400_8192
 # Last modified 17th April 2013
 # FPGA clock:         200 MHz
 # Dump rate:          2 s
@@ -72,7 +70,8 @@ nar_acc_len       = acc_len * 4096 / 8
 n_cycles_per_dump = 128*n_sec
 sq_wv_period      = 8 * nar_acc_len / n_cycles_per_dump 
 
-fpga_config = {
+hipsr_400_8192 = {
+    "firmware"              : 'hispec_8192_v2_2013_Apr_18_1730.bof',
     "acc_len"               : acc_len,
     "fft_shift"             : -1,
     "quant_xx_gain"         : -1,
@@ -85,6 +84,21 @@ fpga_config = {
     "nar_fft_shift"         : -1,
     "nar_acc_len"           : nar_acc_len
 }
-        
-tcs_regex_esc = '\\n' # Escape for message from TCS
-#tcs_regex_esc = '' # Escape for dummy TCS data
+
+hipsr_200_16384 = {
+    "firmware"              : 'hispec_200_16384.bof',
+    "acc_len"               : acc_len,
+    "fft_shift"             : -1,
+    "quant_xx_gain"         : -1,
+    "quant_yy_gain"         : -1,
+    "quant_xy_gain"         : -1,
+    "mux_sel"               : 0,
+    "nar_sq_wave_period"    : sq_wv_period,
+    "nar_quant_yy_gain"     : -1,
+    "nar_quant_xx_gain"     : -1,
+    "nar_fft_shift"         : -1,
+    "nar_acc_len"           : nar_acc_len
+}
+
+fpga_config["hipsr_400_8192"]  = hipsr_400_8192
+fpga_config["hipsr_200_16384"] = hipsr_200_16384

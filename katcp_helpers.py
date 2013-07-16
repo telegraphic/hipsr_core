@@ -23,153 +23,131 @@ import hipsr_core.config as config
 
 class FpgaProgrammer(threading.Thread):
     """ Thread worker function for reprogramming roach boards """
-    
-    def __init__(self, queue):
-      "Constructor."
-      threading.Thread.__init__(self)
-      self.queue = queue
-      self.data = []
+    def __init__(self, queue, flavor):
+        "Constructor."
+        threading.Thread.__init__(self)
+        self.queue  = queue
+        self.flavor = flavor
+        self.data = []
     
     def run(self):
-      """ Thread run method. Fetch data from roach"""
-      while True:
-        # Get input queue info (FPGA object) 
-        fpga = self.queue.get()
-
-        try:
-            time.sleep(random.random()/100) # Spread out 
-            msg = "\tProgramming %s"%fpga.host
-            print msg
-            
-            fpga.progdev(config.boffile)
-            time.sleep(1)
-            
-            if fpga.is_connected():
-              registers = fpga.listdev()
-              if len(registers) == 0:
-                  print "Warning: %s doesn't appear to be programmed. Attempting to reprogram...."%fpga.host
-                  try:
-                      fpga.progdev(boffile)
-                      time.sleep(1)
-                  except:
-                      print "programming timed out. There's probably something up"
-            
-        except:
-            print "Warning: couldn't grab data from %s"%fpga.host
-        
-        
-        # Signal to queue task complete
-        self.queue.task_done()
+        """ Thread run method. Fetch data from roach"""
+        while True:
+            # Get input queue info (FPGA object)
+            fpga = self.queue.get()
+            try:
+                time.sleep(random.random()/100) # Spread out
+                msg = "\tProgramming %s"%fpga.host
+                print msg
+                fpga.progdev(config.fpga_config[self.flavor]["firmware"])
+                time.sleep(1)
+                if fpga.is_connected():
+                    registers = fpga.listdev()
+                    if len(registers) == 0:
+                        print "Warning: %s doesn't appear to be programmed. Attempting to reprogram...."%fpga.host
+                        try:
+                            fpga.progdev(config.fpga_config[self.flavor]["firmware"])
+                            time.sleep(1)
+                        except:
+                            print "programming timed out. There's probably something up"
+            except:
+                print "Warning: couldn't grab data from %s"%fpga.host
+            # Signal to queue task complete
+            self.queue.task_done()
 
 class FpgaConfigurer(threading.Thread):
     """ Thread worker function for reprogramming roach boards """
-    
-    def __init__(self, queue):
-      "Constructor."
-      threading.Thread.__init__(self)
-      self.queue = queue
-      self.data = []
+    def __init__(self, queue, flavor):
+        "Constructor."
+        threading.Thread.__init__(self)
+        self.queue = queue
+        self.flavor = flavor
+        self.data = []
     
     def run(self):
-      """ Thread run method. Fetch data from roach"""
-      while True:
-        # Get input queue info (FPGA object) 
-        fpga = self.queue.get()
-        time.sleep(1)
+        """ Thread run method. Fetch data from roach"""
+        while True:
+            # Get input queue info (FPGA object)
+            fpga = self.queue.get()
+            time.sleep(1)
 
-        try:
-            if fpga.is_connected():
-              registers = fpga.listdev()
-              if len(registers) == 0:
-                  print "\tWarning: %s doesn't appear to be programmed. Attempting to reprogram...."%fpga.host
-                  fpga.progdev(config.boffile)
-                  time.sleep(1)
-                  
-              try:
-                fpga.write_int('acc_len',         config.fpga_config["acc_len"]) # About 2s
-                fpga.write_int('quant_xx_gain',   config.fpga_config["quant_xx_gain"])
-                fpga.write_int('quant_yy_gain',   config.fpga_config["quant_yy_gain"])
-                fpga.write_int('quant_xy_gain',   config.fpga_config["quant_xy_gain"])
-                fpga.write_int('fft_shift',       config.fpga_config["fft_shift"])
+            try:
+                if fpga.is_connected():
+                    registers = fpga.listdev()
+                    if len(registers) == 0:
+                        print "\tWarning: %s doesn't appear to be programmed. Attempting to reprogram...."%fpga.host
+                        fpga.progdev(config.fpga.config[self.flavor]["firmware"])
+                        time.sleep(1)
 
-                fpga.write_int("nar_sq_wave_period", config.fpga_config["nar_sq_wave_period"])
-                fpga.write_int("nar_quant_yy_gain",  config.fpga_config["nar_quant_yy_gain"]) 
-                fpga.write_int("nar_quant_xx_gain",  config.fpga_config["nar_quant_xx_gain"]) 
-                fpga.write_int("nar_fft_shift",      config.fpga_config["nar_fft_shift"])     
-                fpga.write_int("nar_acc_len",        config.fpga_config["nar_acc_len"])
+                    try:
+                        for key in config.fpga_config[self.flavor].keys():
+                            fpga.write_int(key, config.fpga_config[self.flavor][key])
 
-                fpga.write_int('master_reset',    0)
-                fpga.write_int('master_reset',    1)
-                fpga.write_int('sync_pps_arm',    0)
-                fpga.write_int('sync_pps_arm',    1)
-                
-                print "\t%s configured"%fpga.host
-                time.sleep(1)
-              except:
-                print "\tWarning: programming timed out. There's probably something up"
-             
-            
-        except:
-            print "Error configuring %s"%fpga.host
-        
-        
-        # Signal to queue task complete
-        self.queue.task_done()
+                        fpga.write_int('master_reset',    0)
+                        fpga.write_int('master_reset',    1)
+                        fpga.write_int('sync_pps_arm',    0)
+                        fpga.write_int('sync_pps_arm',    1)
+
+                        print "\t%s configured"%fpga.host
+                        time.sleep(1)
+                    except:
+                        print "\tWarning: programming timed out. There's probably something up"
+
+
+            except:
+                print "Error configuring %s"%fpga.host
+
+            # Signal to queue task complete
+            self.queue.task_done()
 
 
 def runThreads(fpgalist, threadqueue):
     """ Spawns multiple threads, with each thread retrieving from a single board.
     A queue is used to block until all threads have completed.   
     """
-
     # Run threads using queue
     for fpga in fpgalist:
       threadqueue.put(fpga)
-    
     # Make sure all threads have completed
     threadqueue.join()
 
-def reprogram():
+
+def reprogram(flavor):
     """ Reprogram FPGAs"""
     threadqueue = Queue.Queue()
     print("Connecting to ROACH boards...")
     roachlist = config.roachlist
     fpgalist  = [katcp_wrapper.FpgaClient(roach, config.katcp_port, timeout=10) for roach in roachlist]
-
     for i in range(len(fpgalist)):
-       t = FpgaProgrammer(threadqueue)
-       t.setDaemon(True)
-       t.setName("thread-%s"%fpgalist[i].host)
-       t.start()
-    
+        t = FpgaProgrammer(threadqueue, flavor)
+        t.setDaemon(True)
+        t.setName("thread-%s"%fpgalist[i].host)
+        t.start()
     runThreads(fpgalist, threadqueue)
 
-def reconfigure():
+
+def reconfigure(flavor):
     """ Reconfigure FPGAs"""
     threadqueue = Queue.Queue()
     print("Connecting to ROACH boards...")
     roachlist = config.roachlist
-    
     fpgalist  = [katcp_wrapper.FpgaClient(roach, config.katcp_port, timeout=10) for roach in roachlist]
-    
     for i in range(len(fpgalist)):
-       t = FpgaConfigurer(threadqueue)
+       t = FpgaConfigurer(threadqueue, flavor)
        t.setDaemon(True)
        t.setName("thread-%s"%fpgalist[i].host)
        t.start()
-    
     runThreads(fpgalist, threadqueue)
+
 
 def snap(fpga, snap_id, bytes=4096, fmt='uint32'):
     """Retrieve & unpack data from a snap block"""
-    
     fpga.write_int(snap_id+'_ctrl', 0, blindwrite=True)
     fpga.write_int(snap_id+'_ctrl', 1, blindwrite=True)
     packed = fpga.read(snap_id+'_bram', bytes)
-    
     data = np.fromstring(packed, dtype=fmt).byteswap()
-    
     return data
+
 
 def stitch(array1,array2):
     """ Stitch together even and odd values.
@@ -180,8 +158,8 @@ def stitch(array1,array2):
     """
     # Create a 2xN numpy array, transpose then ravel into 1D
     data = np.array([array1,array2])
-    
     return np.array(data.transpose().ravel())
+
 
 def squashData(data, numchans=256):
     """ Averages channels, reduces down to an amount suitable for plotting.  """   
@@ -190,6 +168,7 @@ def squashData(data, numchans=256):
     else:
         yvals = data
     return yvals.astype('float32')
+
 
 def squashSpectrum(spectra):
     """ Applies squashData four times """
@@ -201,7 +180,6 @@ def squashSpectrum(spectra):
     #keys = ["xx","yy","re_xy","im_xy"]
     keys = ["xx", "yy"] # No need to do stokes for now
     squashed = {}
-    
     for key in keys:
         val = squashData(spectra[key])
         val[np.isnan(val)] = 0   # JSON does not support nan
@@ -209,7 +187,8 @@ def squashSpectrum(spectra):
         squashed[key] = val
     return squashed
 
-def getSpectrum(fpga):
+
+def getSpectrum_400_8192(fpga):
     """Retrieves HIPSR spectral data from roach board.
     
     Returns spectral data as a dictionary of numpy arrays
@@ -220,8 +199,7 @@ def getSpectrum(fpga):
       fpga katcp socket thing that does the talking
     """
     bytes=4096*4
-
-    if(fpga.is_connected()):
+    if fpga.is_connected() :
         # grab the snap data and unpack
         data_xx0 = snap(fpga, 'snap_xx0', bytes, 'uint32')
         data_xx1 = snap(fpga, 'snap_xx1', bytes, 'uint32')
@@ -264,12 +242,60 @@ def getSpectrum(fpga):
             "yy_cal_on"  : yy_cal_on,
             "yy_cal_off" : yy_cal_off
             }
-        
         return dataDict
     else:
         raise Exception('FPGA-data-grabber')
 
-#START OF MAIN:
-if __name__ == '__main__':
-    reprogram()
-    reconfigure()
+def getSpectrum_200_16384(fpga):
+    """Retrieves HIPSR spectral data from roach board.
+
+    Returns spectral data as a dictionary of numpy arrays
+
+    Parameters
+    ----------
+    fpga: katcp_wrapper.FpgaClient object
+      fpga katcp socket thing that does the talking
+    """
+    bytes=4096*4*4
+    if fpga.is_connected() :
+        # grab the snap data and unpack
+        data_xx = snap(fpga, 'snap_xx', bytes, 'uint32')
+        data_yy = snap(fpga, 'snap_yy', bytes, 'uint32')
+
+        fft_of   = fpga.read_int('o_fft_of')
+        acc_cnt  = fpga.read_int('o_acc_cnt')
+        adc_clip = fpga.read_int('o_adc0_clip')
+
+        # grab the NAR snap data too
+        xx_cal_on  = snap(fpga, 'nar_snap_x_on',  64, 'uint32')
+        xx_cal_off = snap(fpga, 'nar_snap_x_off', 64, 'uint32')
+        yy_cal_on  = snap(fpga, 'nar_snap_y_on',  64, 'uint32')
+        yy_cal_off = snap(fpga, 'nar_snap_y_off', 64, 'uint32')
+
+        #reverse data: np.array(data_xx)[::-1]
+        dataDict = {
+            "id" : acc_cnt,
+            "xx": data_xx,
+            "yy" : data_yy,
+            "fft_of" : fft_of,
+            "adc_clip" : adc_clip,
+            "timestamp" : 0,
+            "xx_cal_on"  : xx_cal_on,
+            "xx_cal_off" : xx_cal_off,
+            "yy_cal_on"  : yy_cal_on,
+            "yy_cal_off" : yy_cal_off
+        }
+        return dataDict
+    else:
+        raise Exception('FPGA-data-grabber')
+
+
+def getSpectrum(fpga, flavor='hipsr_400_8192'):
+    """ Helper function to select which flavor of getSpectrum should be used """
+    if flavor == 'hipsr_400_8192':
+        return getSpectrum_400_8192(fpga)
+
+    elif flavor == 'hipsr_200_16384':
+        return getSpectrum_200_16384(fpga)
+
+
