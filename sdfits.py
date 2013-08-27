@@ -595,7 +595,6 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
     num_chans = h6.h5.root.raw_data.beam_01.cols.xx.shape[1]
     acc_len   = h6.h5.root.firmware_config.cols.acc_len[0]
     ref_delta = num_chans * acc_len * 2 / ref_clk
-    print "ref_delta
 
     print "Filling in common values... ",
     sdtab["SCAN"][:]     = 1
@@ -669,7 +668,6 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                     if beam_id == 1:
                         new_id = beam.cols.id[row_h5]
                         timestamp = (new_id - ref_id) * ref_delta + ref_time
-                        print timestamp
                         date_obs, time = timestamp2dt(timestamp)
 
                     sdtab["DATE-OBS"][row_sd] = date_obs
@@ -743,19 +741,14 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                             flags[yy>T_sys_x*5] = 1
                             flags[xx==1] = 1
                             flags[yy==1] = 1
+                            flags = np.append(flags, flags)
+                            flags = flags.reshape([1,1,2,8192])
+                            sdtab["FLAGGED"][row_sd] = flags
                         
                         data = np.append(xx, yy)
                         data = data.reshape([1,1,2,8192]) 
                     
                     sdtab["DATA"][row_sd] = data
-                    
-                    if do_flagger:
-                        flags = np.append(flags, flags)
-                        flags = flags.reshape([1,1,2,8192])
-                        sdtab["FLAGGED"][row_sd] = flags 
-                    
-
-
                     
                 except:
                     if beam.name != 'beam_02':
@@ -764,9 +757,9 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                         print "Row length: %i"%beam.shape[0]
                         raise
                     try:
-                        sdtab["FLAGGED"][row_sd] = np.ones([1, 1, 2, 8192])
-                    except:
-                        raise
+                        sdtab["FLAGGED"][row_sd] = np.ones_like([1,1,2,8192])
+                    except ValueError:
+                        pass
                 row_sd += 1
             else:
                 print "WARNING: scan_pointing table is not complete."
