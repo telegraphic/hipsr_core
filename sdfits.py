@@ -595,6 +595,7 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
     num_chans = h6.h5.root.raw_data.beam_01.cols.xx.shape[1]
     acc_len   = h6.h5.root.firmware_config.cols.acc_len[0]
     ref_delta = num_chans * acc_len * 2 / ref_clk
+    print "ref_delta
 
     print "Filling in common values... ",
     sdtab["SCAN"][:]     = 1
@@ -656,7 +657,7 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
 
                 # This is confusing - but it looks like FOCUSROT should be 15.0, which is sent as feed_angle
                 # Likewise, focusaxi is probably supposed to be what we receive as focus_rot
-                focus_rot = h6.tb_scan_pointing.col("focus_rot")[cycle_id-1] * 180.0 / np.pi
+                focus_rot = h6.tb_scan_pointing.col("focus_rot")[cycle_id-1]
                 sdtab["FOCUSROT"][row_sd] = focus_rot
                 sdtab["FOCUSAXI"][row_sd] = h6.tb_observation.col("feed_angle")[0]
 
@@ -668,6 +669,7 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                     if beam_id == 1:
                         new_id = beam.cols.id[row_h5]
                         timestamp = (new_id - ref_id) * ref_delta + ref_time
+                        print timestamp
                         date_obs, time = timestamp2dt(timestamp)
 
                     sdtab["DATE-OBS"][row_sd] = date_obs
