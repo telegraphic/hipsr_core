@@ -10,12 +10,10 @@ Functions and helpers to convert HIPSR5 files into SD-FITS
 import sys, os, re, time
 from datetime import datetime
 import pyfits as pf, numpy as np, tables as tb
-import pylab 
-from optparse import OptionParser
 
 import config as config
 from printers import LinePrint
-from hipsr6 import Hipsr6
+from hipsrx import Hipsr6
 
 
 __version__  = config.__version__
@@ -590,20 +588,28 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
     sdhead["PROJID"]   = obs.project_id[0]
     
     # Fill in common values
+    # NEW METHOD OF TIMESTAMPING - AUG 27 2013
+    ref_time  = int(h6.h5.root.raw_data.beam_01.cols.timestamp[0])
+    ref_id    = int(h6.h5.root.raw_data.beam_01.cols.id[0])
+    ref_clk   = 800e6 # Clock frequency 800 MHz
+    num_chans = h6.h5.root.raw_data.beam_01.cols.xx.shape[1]
+    acc_len   = h6.h5.root.firmware_config.cols.acc_len[0]
+    ref_delta = num_chans * acc_len * 2 / ref_clk
+
     print "Filling in common values... ",
     sdtab["SCAN"][:]     = 1
-    sdtab["EXPOSURE"][:] = obs.acc_len[0]
+    sdtab["EXPOSURE"][:] = ref_delta
     sdtab["OBJECT"][:]   = pointing.source[0]
     sdtab["OBJ-RA"][:]   = pointing.ra[0]
     sdtab["OBJ-DEC"][:]  = pointing.dec[0]
-    sdtab["RESTFRQ"][:]  = obs.frequency[0]    
+    sdtab["RESTFRQ"][:]  = obs.frequency[0] * 1e6
     sdtab["FREQRES"][:]  = np.abs(obs.bandwidth[0])*1e6 / 8192
-    sdtab["BANDWID"][:]  = np.abs(obs.bandwidth[0])
+    sdtab["BANDWID"][:]  = np.abs(obs.bandwidth[0]) * 1e6
     sdtab["CRPIX1"][:]   = 4095
     sdtab["CRVAL1"][:]   = obs.frequency[0] * 1e6
     sdtab["CDELT1"][:]   = np.abs(obs.bandwidth[0])*1e6 / 8192
     sdtab["FLAGGED"][:]  = 0
-    sdtab["SCANRATE"][:] = obs.scan_rate[0]
+    sdtab["SCANRATE"][:] = obs.scan_rate[0] / 60 # Deg/min to deg/s
 
 
     # TCS INFO
@@ -613,7 +619,6 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
     
     row_sd   = 0
     cycle_id = 0
-    scaling = 2**22 # Divide through to change 32-bit to 
     
     flipped = False
     if obs.bandwidth[0] < 0:
@@ -623,6 +628,7 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
     num_cycles = np.min([scan_pointing_len, num_acc])
     for row_h5 in range(num_acc):
         cycle_id += 1 # Starts at 1 in SD-FITS file
+
         for beam in h6.h5.root.raw_data:
             beam_id = int(beam.name.lstrip('beam_'))
             LinePrint("%i of %i"%(row_sd, num_rows))
@@ -632,28 +638,38 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                 dcj_id = "mb%s_dcj"%beam.name.lstrip('beam_')
                 
                 sdtab["CYCLE"][row_sd]   = cycle_id
-                
-                
+
                 # Fix beam mapping (remove after fixing mapping)
                 sdtab["BEAM"][row_sd]     = beam_id
                 
                 sdtab["CRVAL3"][row_sd]   = h6.tb_scan_pointing.col(raj_id)[cycle_id-1]
                 sdtab["CRVAL4"][row_sd]   = h6.tb_scan_pointing.col(dcj_id)[cycle_id-1]
-                sdtab["AZIMUTH"][row_sd]  = h6.tb_scan_pointing.col("azimuth")[cycle_id-1]
-                sdtab["ELEVATIO"][row_sd] = h6.tb_scan_pointing.col("elevation")[cycle_id-1]
-                sdtab["PARANGLE"][row_sd] = h6.tb_scan_pointing.col("par_angle")[cycle_id-1]
-                sdtab["FOCUSAXI"][row_sd] = h6.tb_scan_pointing.col("focus_axi")[cycle_id-1]
+
+                # AZ, EL and PARANGLE should be stored for beam 1 only
+                if beam_id == 1:
+                    sdtab["AZIMUTH"][row_sd]  = h6.tb_scan_pointing.col("azimuth")[cycle_id-1]
+                    sdtab["ELEVATIO"][row_sd] = h6.tb_scan_pointing.col("elevation")[cycle_id-1]
+                    sdtab["PARANGLE"][row_sd] = h6.tb_scan_pointing.col("par_angle")[cycle_id-1]
+
+                #sdtab["FOCUSAXI"][row_sd] = h6.tb_scan_pointing.col("focus_axi")[cycle_id-1]
                 sdtab["FOCUSTAN"][row_sd] = h6.tb_scan_pointing.col("focus_tan")[cycle_id-1]
-                
-                # This is a wild guess...
-                focus_rot = h6.tb_scan_pointing.col("focus_rot")[cycle_id-1]
-                feed_angle = h6.tb_observation.col("feed_angle")[0]
-                sdtab["FOCUSROT"][row_sd] = focus_rot # + feed_angle
-                                 
+
+                # This is confusing - but it looks like FOCUSROT should be 15.0, which is sent as feed_angle
+                # Likewise, focusaxi is probably supposed to be what we receive as focus_rot
+                focus_rot = h6.tb_scan_pointing.col("focus_rot")[cycle_id-1] * 180.0 / np.pi
+                sdtab["FOCUSROT"][row_sd] = focus_rot
+                sdtab["FOCUSAXI"][row_sd] = h6.tb_observation.col("feed_angle")[0]
 
                 try:
-                    timestamp  = beam.cols.timestamp[row_h5]
-                    date_obs, time = timestamp2dt(timestamp)
+
+                    # OLD - 27 Aug 2013
+                    #timestamp  = beam.cols.timestamp[row_h5]
+                    # New - based off integration length
+                    if beam_id == 1:
+                        new_id = beam.cols.id[row_h5]
+                        timestamp = (new_id - ref_id) * ref_delta + ref_time
+                        date_obs, time = timestamp2dt(timestamp)
+
                     sdtab["DATE-OBS"][row_sd] = date_obs
                     sdtab["TIME"][row_sd]     = time
                     
@@ -721,8 +737,8 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                         do_flagger = True
                         if do_flagger:
                             flags = np.zeros(len(xx))
-                            flags[xx>T_sys_x*2] = 1
-                            flags[yy>T_sys_x*2] = 1
+                            flags[xx>T_sys_x*5] = 1
+                            flags[yy>T_sys_x*5] = 1
                             flags[xx==1] = 1
                             flags[yy==1] = 1
                         
@@ -745,12 +761,16 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                         print "Current index: %i"%row_h5
                         print "Row length: %i"%beam.shape[0]
                         raise
-
+                    try:
+                        sdtab["FLAGGED"][row_sd] = np.ones([1, 1, 2, 8192])
+                    except:
+                        raise
                 row_sd += 1
             else:
                 print "WARNING: scan_pointing table is not complete."
                 print "%s table length: %i"%(beam.name, beam.shape[0])
                 print "scan_pointing table length: %i"%scan_pointing_len
+
     
     h6.h5.close()
     
