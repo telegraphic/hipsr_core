@@ -515,7 +515,7 @@ def generateSDFitsFromMbcorr(input_file, header_primary, header_tbl, coldef_file
 
     return hdulist
 
-def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_stokes=False):
+def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_stokes=0):
     """ Generate an SD-FITS file from a hipsr5 file """
     
     # Open h5 file
@@ -558,16 +558,21 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
     # We now need to generate a blank SD-FITS file, with the same number of rows
     print "\nGenerating blank SD-FITS file with %i rows..."%num_rows
     
-    if write_stokes:
+    if write_stokes == 2:
         print "Stokes flag found - writing I,Q,U,V"
         header_primary='hipsr_core/header_primaryHDU.txt'
         header_tbl='hipsr_core/header_dataHDU_stokes.txt'
         coldef_file='hipsr_core/coldefs_dataHDU_stokes.txt'
-    else:
+    elif write_stokes == 0:
         print "Writing XX, YY"
         header_primary='hipsr_core/header_primaryHDU.txt'
         header_tbl='hipsr_core/header_dataHDU.txt'
         coldef_file='hipsr_core/coldefs_dataHDU.txt'
+    else:
+        print "Writing XX, YY, XY, YX"
+        header_primary='hipsr_core/header_primaryHDU.txt'
+        header_tbl='hipsr_core/header_dataHDU_xpol.txt'
+        coldef_file='hipsr_core/coldefs_dataHDU_xpol.txt'
     
     hdulist = generateBlankSDFits(num_rows, header_primary, header_tbl, coldef_file)
     print hdulist.info()
@@ -603,11 +608,11 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
     sdtab["OBJ-RA"][:]   = pointing.ra[0]
     sdtab["OBJ-DEC"][:]  = pointing.dec[0]
     sdtab["RESTFRQ"][:]  = obs.frequency[0] * 1e6
-    sdtab["FREQRES"][:]  = np.abs(obs.bandwidth[0])*1e6 / 8192
+    sdtab["FREQRES"][:]  = np.abs(obs.bandwidth[0])*1e6 / num_chans
     sdtab["BANDWID"][:]  = np.abs(obs.bandwidth[0]) * 1e6
-    sdtab["CRPIX1"][:]   = 4095
+    sdtab["CRPIX1"][:]   = num_chans/2
     sdtab["CRVAL1"][:]   = obs.frequency[0] * 1e6
-    sdtab["CDELT1"][:]   = np.abs(obs.bandwidth[0])*1e6 / 8192
+    sdtab["CDELT1"][:]   = np.abs(obs.bandwidth[0])*1e6 / num_chans
     sdtab["FLAGGED"][:]  = 0
     sdtab["SCANRATE"][:] = obs.scan_rate[0] / 60 # Deg/min to deg/s
 
@@ -683,7 +688,7 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                     sdtab["TCAL"][row_sd] = (np.average(extractMid(T_d_x)), np.average(extractMid(T_d_y)))
                     #sdtab["CALFCTR"][row_sd] = (1, 1)
                     
-                    if write_stokes:
+                    if write_stokes == 2:
                         # Currently not calibrating!
                         xx = beam.cols.xx[row_h5].astype('float32') 
                         yy = beam.cols.yy[row_h5].astype('float32') 
@@ -712,17 +717,26 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                         data1 = np.append(ii, qq)
                         data2 = np.append(uu, vv)
                         data  = np.append(data1, data2)
-                        data  = data.reshape([1,1,4,8192])
+                        data  = data.reshape([1,1,4,num_chans])
                     else:
                         
                         xx = beam.cols.xx[row_h5].astype('float32') 
                         yy = beam.cols.yy[row_h5].astype('float32') 
-                                                
                         # Blank DC bin
                         xx[0], yy[0] = 0,0
+
+                        if write_stokes == 1:
+                            re_xy = beam.cols.re_xy[row_h5].astype('float32')
+                            im_xy = beam.cols.im_xy[row_h5].astype('float32')
+                            re_xy = re_xy / np.average(extractMid(re_xy)) * np.sqrt(T_sys_x * T_sys_y)
+                            im_xy = im_xy / np.average(extractMid(im_xy)) * np.sqrt(T_sys_x * T_sys_y)
+                            re_xy[0], im_xy[0] = 0, 0
+
                         if flipped:
                             xx, yy = xx[::-1], yy[::-1]                           
-                        
+                            if write_stokes:
+                                re_xy, im_xy = re_xy[::-1], im_xy[::-1]
+
                         #print "cal factor: %2.3f"%cf
                         #print "Diode temp: %s"%T_d
                         #xx, yy = applyCal(beam, row_h5, freqs, freqs_cal, cf, T_d_x, T_d_y)
@@ -742,13 +756,16 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                             flags[xx==1] = 1
                             flags[yy==1] = 1
                             flags = np.append(flags, flags)
-                            flags = flags.reshape([1,1,2,8192])
+                            flags = flags.reshape([1,1,2,num_chans])
                             sdtab["FLAGGED"][row_sd] = flags
                         
                         data = np.append(xx, yy)
-                        data = data.reshape([1,1,2,8192]) 
+                        data = data.reshape([1,1,2,num_chans])
                     
                     sdtab["DATA"][row_sd] = data
+
+                    if write_stokes == 1:
+                        sdtab["XPOLDATA"][row_sd] = np.row_stack((re_xy, im_xy)).flatten()
                     
                 except:
                     if beam.name != 'beam_02':
@@ -757,7 +774,7 @@ def generateSDFitsFromHipsr(filename_in, path_in, filename_out, path_out, write_
                         print "Row length: %i"%beam.shape[0]
                         raise
                     try:
-                        sdtab["FLAGGED"][row_sd] = np.ones_like([1,1,2,8192])
+                        sdtab["FLAGGED"][row_sd] = np.ones_like([1,1,2,num_chans])
                     except ValueError:
                         pass
                 row_sd += 1
