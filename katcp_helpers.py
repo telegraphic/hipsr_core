@@ -81,7 +81,8 @@ class FpgaConfigurer(threading.Thread):
 
                     try:
                         for key in config.fpga_config[self.flavor].keys():
-                            fpga.write_int(key, config.fpga_config[self.flavor][key])
+                            if key != "firmware":
+                                fpga.write_int(key, config.fpga_config[self.flavor][key])
 
                         fpga.write_int('master_reset',    0)
                         fpga.write_int('master_reset',    1)
@@ -90,8 +91,15 @@ class FpgaConfigurer(threading.Thread):
 
                         print "\t%s configured"%fpga.host
                         time.sleep(1)
+                    except KeyError:
+                        print "\tWarning: Key Error raised. One or more software registers cannot be programmed."
+                        print "\tFPGA: %s, Current key: %s"%(fpga.host, key)
+                    except RuntimeError:
+                        print "\tWarning: Runtime Error raised. One or more software registers cannot be programmed."
+                        print "\tFPGA: %s, Current key: %s"%(fpga.host, key)
                     except:
-                        print "\tWarning: programming timed out. There's probably something up"
+                        print "\tWarning: programming exception raised. There's probably something up"
+                        raise
 
 
             except:
