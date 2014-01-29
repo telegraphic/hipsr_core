@@ -297,6 +297,46 @@ def getSpectrum_200_16384(fpga):
     else:
         raise Exception('FPGA-data-grabber')
 
+def getSpectrum_rms_levels(fpga):
+    """Retrieves HIPSR RMS and NAR levels
+
+    Returns spectral data as a dictionary of numpy arrays
+
+    Parameters
+    ----------
+    fpga: katcp_wrapper.FpgaClient object
+      fpga katcp socket thing that does the talking
+    """
+
+    if fpga.is_connected():
+        fpga.write_int('mux_sel', 0)
+        time.sleep(1e-6)
+        rms_x = np.std(snap(fpga, 'snap_mux', fmt='int8'))
+
+        fpga.write_int('mux_sel', 2)
+        time.sleep(1e-6)
+        rms_y = np.std(snap(fpga, 'snap_mux', fmt='int8'))
+
+        # grab the NAR snap data too
+        xx_cal_on  = snap(fpga, 'nar_snap_x_on',  64, 'uint32')
+        xx_cal_off = snap(fpga, 'nar_snap_x_off', 64, 'uint32')
+        yy_cal_on  = snap(fpga, 'nar_snap_y_on',  64, 'uint32')
+        yy_cal_off = snap(fpga, 'nar_snap_y_off', 64, 'uint32')
+
+        dataDict = {
+            'rms_x' : rms_x,
+            'rms_y' : rms_y,
+            'nar_x_on' : np.average(xx_cal_on),
+            'nar_y_on' : np.average(yy_cal_on),
+            'nar_x_off' : np.average(xx_cal_off),
+            'nar_y_off' : np.average(yy_cal_off)
+        }
+
+        return dataDict
+    else:
+        raise Exception('FPGA-data-grabber')
+
+
 
 def getSpectrum(fpga, flavor='hipsr_400_8192'):
     """ Helper function to select which flavor of getSpectrum should be used """
@@ -305,5 +345,8 @@ def getSpectrum(fpga, flavor='hipsr_400_8192'):
 
     elif flavor == 'hipsr_200_16384':
         return getSpectrum_200_16384(fpga)
+
+    elif flavor == 'rms_levels':
+        return getSpectrum_rms_levels(fpga)
 
 
