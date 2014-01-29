@@ -11,11 +11,13 @@ This is the main configuration file for the HIPSR wideband spectrometer server s
 ###########
 # v1 - Analytical Albatross (Oct 2012)
 # v2 - Ballistic Bandicoot  (Apr 2013)
+# v3 - Cartesian Cockatoo   (Sep 2013)
+# v4 - Dirac-Delta Dingo     (Jan 2014)
 
 __author__    = "Danny Price"
 __email__     = "danny.price@astro.ox.ac.uk" 
 __license__   = "GNU GPL"
-__version__   = "2.0 - Ballistic Bandicoot"
+__version__   = "4.0 - Dirac-Delta Dingo"
 
 project_id    = 'PXXX'
 data_dir      = '/data/hipsr'
@@ -79,8 +81,8 @@ hipsr_400_8192 = {
     "quant_xy_gain"         : -1,
     "mux_sel"               : 0,
     "nar_sq_wave_period"    : sq_wv_period, 
-    "nar_quant_yy_gain"     : -1,
-    "nar_quant_xx_gain"     : -1,
+    "nar_quant_yy_gain"     : 2**10-1,
+    "nar_quant_xx_gain"     : 2**10-1,
     "nar_fft_shift"         : -1,
     "nar_acc_len"           : nar_acc_len
 }
@@ -96,8 +98,8 @@ hipsr_200_16384 = {
     "quant_xy_gain"         : -1,
     "mux_sel"               : 0,
     "nar_sq_wave_period"    : sq_wv_period,
-    "nar_quant_yy_gain"     : -1,
-    "nar_quant_xx_gain"     : -1,
+    "nar_quant_yy_gain"     : 2**10-1,
+    "nar_quant_xx_gain"     : 2**10-1,
     "nar_fft_shift"         : -1,
     "nar_acc_len"           : nar_acc_len
 }
