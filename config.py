@@ -82,8 +82,8 @@ hipsr_400_8192 = {
     "quant_xy_gain"         : -1,
     "mux_sel"               : 0,
     "nar_sq_wave_period"    : sq_wv_period, 
-    "nar_quant_yy_gain"     : 2**10-1,
-    "nar_quant_xx_gain"     : 2**10-1,
+    "nar_quant_yy_gain"     : 2**12-1,
+    "nar_quant_xx_gain"     : 2**12-1,
     "nar_fft_shift"         : -1,
     "nar_acc_len"           : nar_acc_len
 }
@@ -97,8 +97,8 @@ hipsr_200_16384 = {
     "quant_xy_gain"         : -1,
     "mux_sel"               : 0,
     "nar_sq_wave_period"    : sq_wv_period,
-    "nar_quant_yy_gain"     : 2**10-1,
-    "nar_quant_xx_gain"     : 2**10-1,
+    "nar_quant_yy_gain"     : 2**12-1,
+    "nar_quant_xx_gain"     : 2**12-1,
     "nar_fft_shift"         : -1,
     "nar_acc_len"           : nar_acc_len
 }
