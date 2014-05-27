@@ -96,7 +96,6 @@ hipsr_200_16384 = {
     "fft_shift"             : -1,
     "quant_xx_gain"         : -1,
     "quant_yy_gain"         : -1,
-    "quant_xy_gain"         : -1,
     "mux_sel"               : 0,
     "nar_sq_wave_period"    : sq_wv_period,
     "nar_quant_yy_gain"     : 2**12-1,
