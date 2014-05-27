@@ -12,12 +12,13 @@ This is the main configuration file for the HIPSR wideband spectrometer server s
 # v1 - Analytical Albatross (Oct 2012)
 # v2 - Ballistic Bandicoot  (Apr 2013)
 # v3 - Cartesian Cockatoo   (Sep 2013)
-# v4 - Dirac-Delta Dingo     (Jan 2014)
+# v4 - Dirac-Delta Dingo    (Jan 2014)
+# v5 - Epsilon>0 Echidna    (May 2014)
 
 __author__    = "Danny Price"
 __email__     = "danny.price@astro.ox.ac.uk" 
 __license__   = "GNU GPL"
-__version__   = "4.0 - Dirac-Delta Dingo"
+__version__   = "5.0 - Epsilon>0 Echidna"
 
 project_id    = 'PXXX'
 data_dir      = '/data/hipsr'
@@ -88,9 +89,10 @@ hipsr_400_8192 = {
     "nar_acc_len"           : nar_acc_len
 }
 
+
 hipsr_200_16384 = {
-    "firmware"              : 'hispec_200_16384.bof',
-    "acc_len"               : acc_len,
+    "firmware"              : 'hipsr_200_16384_devel_2014_May_24_2311.bof',
+    "acc_len"               : acc_len / 4,
     "fft_shift"             : -1,
     "quant_xx_gain"         : -1,
     "quant_yy_gain"         : -1,
