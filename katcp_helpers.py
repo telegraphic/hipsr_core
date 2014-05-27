@@ -1,12 +1,12 @@
 # encoding: utf-8
 """
-hipsr_reprogram.py
-==============================
+katcp_helpers.py
+================
 
-Reprogram roach boards - threaded.
+Helper functions for grabbing data off the roach boards
 
 Created by Danny Price on 2011-10-05.
-Copyright (c) 2012 The HIPSR collaboration. All rights reserved.
+Copyright (c) 20124The HIPSR collaboration. All rights reserved.
 """
 
 # Python metadata
@@ -270,7 +270,7 @@ def getSpectrum_200_16384(fpga):
         data_xx = snap(fpga, 'snap_xx', bytes, 'uint32')
         data_yy = snap(fpga, 'snap_yy', bytes, 'uint32')
 
-        fft_of   = fpga.read_int('o_fft_of')
+        #fft_of   = fpga.read_int('o_fft_of')
         acc_cnt  = fpga.read_int('o_acc_cnt')
         adc_clip = fpga.read_int('o_adc0_clip')
 
@@ -285,7 +285,7 @@ def getSpectrum_200_16384(fpga):
             "id" : acc_cnt,
             "xx": data_xx,
             "yy" : data_yy,
-            "fft_of" : fft_of,
+            "fft_of" : 0,
             "adc_clip" : adc_clip,
             "timestamp" : 0,
             "xx_cal_on"  : xx_cal_on,
