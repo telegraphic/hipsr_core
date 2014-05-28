@@ -267,8 +267,9 @@ def getSpectrum_200_16384(fpga):
     bytes=4096*4*4
     if fpga.is_connected() :
         # grab the snap data and unpack
-        data_xx = snap(fpga, 'snap_xx', bytes, 'uint32')
-        data_yy = snap(fpga, 'snap_yy', bytes, 'uint32')
+        # Numpy roll required to sort FFT spectrum
+        data_xx = np.roll(snap(fpga, 'snap_xx', bytes, 'uint32'), 8192)
+        data_yy = np.roll(snap(fpga, 'snap_yy', bytes, 'uint32'), 8192)
 
         #fft_of   = fpga.read_int('o_fft_of')
         acc_cnt  = fpga.read_int('o_acc_cnt')
