@@ -3,7 +3,7 @@
 hipsr6.py
 =============
 
-Created by Danny Price on 2013-03-17.
+Created by Danny Price on 2014-05-28.
 Copyright (c) 2013 The HIPSR collaboration. All rights reserved.\n
 
 Functions for creating HIPSR6 data files. The HIPSR6 data format is the
@@ -12,7 +12,7 @@ is superior to FITS in pretty much every way:\n
 http://www.hdfgroup.org/HDF5/
 """ 
 
-__version__ = "1.0"
+__version__ = "5.0"
 __author__  = "Danny Price"
 
 import time,sys,os
@@ -46,8 +46,8 @@ class Spectrum_200_16384(tb.IsDescription):
     timestamp  = tb.Time64Col(pos=1)              # Timestamp (at BRAM read)
     xx         = tb.UInt32Col(shape=16384,pos=2)  # XX Autocorrelation data
     yy         = tb.UInt32Col(shape=16384,pos=3)  # YY Autocorrelation data
-    re_xy      = tb.Int32Col(shape=16384,pos=4)   # XY Cross correlation - real
-    im_xy      = tb.Int32Col(shape=16384,pos=5)   # XY Cross correlation - imag
+    #re_xy      = tb.Int32Col(shape=16384,pos=4)   # XY Cross correlation - real
+    #im_xy      = tb.Int32Col(shape=16384,pos=5)   # XY Cross correlation - imag
     xx_cal_on  = tb.Int32Col(shape=16, pos=6)     # Noise diode ON, X pol
     xx_cal_off = tb.Int32Col(shape=16, pos=7)     # Noise diode OFF, X pol
     yy_cal_on  = tb.Int32Col(shape=16, pos=8)     # Noise diode ON, Y pol
