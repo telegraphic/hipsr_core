@@ -75,7 +75,7 @@ sq_wv_period      = 8 * nar_acc_len / n_cycles_per_dump
 
 # "firmware"              : 'hipsr_400_8192_2014_Jan_27_2354.bof',
 hipsr_400_8192 = {
-    "firmware"              : 'hispec_8192_v2_2013_Apr_18_1730.bof',
+    "firmware"              : 'hipsr_400_8192_2014_May_29_1735.bof',
     "acc_len"               : acc_len,
     "fft_shift"             : -1,
     "quant_xx_gain"         : -1,
