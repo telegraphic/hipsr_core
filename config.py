@@ -104,5 +104,23 @@ hipsr_200_16384 = {
     "nar_acc_len"           : nar_acc_len
 }
 
+hipsr_12_4096 = {
+    "firmware"              : 'hispec_12_4096_2014_Dec_10_1245.bof',
+    "acc_len"               : acc_len / 16,
+    #"fft_shift_coarse"      : -1,
+    #"fft_shift_fine"        : int('100100100100', 2),
+    #"quant_xx_gain"         : -1,
+    #"quant_yy_gain"         : -1,
+    #"mux_sel"               : 0,
+    #"nar_sq_wave_period"    : sq_wv_period,
+    #"nar_quant_yy_gain"     : 2**12-1,
+    #"nar_quant_xx_gain"     : 2**12-1,
+    #"nar_fft_shift"         : -1,
+    #"nar_acc_len"           : nar_acc_len
+
+}
+
+
 fpga_config["hipsr_400_8192"]  = hipsr_400_8192
 fpga_config["hipsr_200_16384"] = hipsr_200_16384
+fpga_config["hipsr_12_4096"]   = hipsr_12_4096
