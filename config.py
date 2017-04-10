@@ -14,11 +14,12 @@ This is the main configuration file for the HIPSR wideband spectrometer server s
 # v3 - Cartesian Cockatoo   (Sep 2013)
 # v4 - Dirac-Delta Dingo    (Jan 2014)
 # v5 - Epsilon>0 Echidna    (May 2014)
+# v6 - Fourier Frillneck    (Apr 2017)
 
 __author__    = "Danny Price"
-__email__     = "danny.price@astro.ox.ac.uk" 
+__email__     = "dancpr@berkeley.edu" 
 __license__   = "GNU GPL"
-__version__   = "5.0 - Epsilon>0 Echidna"
+__version__   = "6.0 - Fourier Frillneck"
 
 project_id    = 'PXXX'
 data_dir      = '/data/hipsr'
@@ -38,7 +39,8 @@ reconfigure   = True
 
 roachlist = {
     "drake"    : "beam_01",
-    "hendrix"  : "beam_02",
+    # "hendrix"  : "beam_02",  Hendric retired, replaced with cohen
+    "cohen"    : "beam_02",
     "reznor"   : "beam_03",
     "keenan"   : "beam_04",
     "mackaye"  : "beam_05", 
